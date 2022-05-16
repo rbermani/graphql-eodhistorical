@@ -1,0 +1,484 @@
+
+type Technicals {
+	Beta:                  Float 
+	WeekHigh52:           Float 
+	WeekLow52:            Float 
+	DayMA50:              Float
+	DayMA200:             Float
+	SharesShort:           Int    
+	SharesShortPriorMonth: Int     
+	ShortRatio:            Float 
+	ShortPercent:          Float 
+}
+
+type EquityFundamentals {
+	General:             General                      
+	Highlights:          Highlights                   
+	Valuation:           Valuation                    
+	SharesStats:         SharesStats                  
+	Technicals:          Technicals                   
+	SplitsDividends:     SplitsDividends              
+	AnalystRatings:      AnalystRatings               
+	Holders:             Holders                      
+	InsiderTransactions: InsiderTransactionMapTuple 
+	ESGScores:           ESGScores                    
+	OutstandingShares:   OutstandingShares            
+	Earnings:            Earnings                     
+	Financials:          Financials                   
+}
+
+type Query {
+    getFundamentals(ticker: String): EquityFundamentals!
+}
+
+type NumberDividendsByYearMapTuple {
+    key: String
+    value: NumberDividendsByYear    
+}
+
+type OfficerMap {
+    item_number: String
+    value: Officer
+}
+
+type ListingMap {
+    item_number: String
+    value: Listing
+}
+
+type IncomeStatementItemMapTuple {
+    key: String
+    value: IncomeStatementItem
+}
+
+type CashFlowItemMapTuple {
+    key: String
+    value: CashFlowItem
+}
+
+type InstitutionMapTuple {
+    key: String
+    value: Institution    
+}
+
+type BalanceSheetItemMapTuple {
+    key: String
+    value: BalanceSheetItem
+}
+
+type InsiderTransactionMapTuple {
+    key: String
+    value: InsiderTransaction
+}
+
+type General {
+    Code: String
+    Type: String
+    Name: String
+    Exchange: String
+    CurrencyCode: String
+    CurrencyName: String
+    CurrencySymbol: String
+    CountryName: String
+    EmployerIdNumber: String
+    FiscalYearEnd: String
+    InternationalDomestic: String
+    Sector: String
+    Industry: String
+    GicSector: String
+    GicGroup: String
+    GicIndustry: String
+    GicSubIndustry: String
+    HomeCategory: String
+    IsDelisted: Boolean
+    Description: String
+    Address: String
+    AddressData: AddressData
+    Listings: ListingMap
+    Officers: OfficerMap
+    Phone: String
+    FullTimeEmployees: Int
+    UpdatedAt: String
+}
+
+type AddressData {
+    Street: String
+    City: String
+    State: String
+    Country: String
+}
+
+type Listing {
+    Code: String
+    Exchange: String
+    Name: String
+}
+
+type Officer {
+    Name: String
+    Title: String
+    YearBorn: String
+}
+
+type Highlights {
+    MarketCapitalization: Int
+    MarketCapitalizationMln: Float
+    WallStreetTargetPrice: Float
+    BookValue: Float
+    DividendShare: Float
+    DividendYield: Float
+    EarningsShare: Float
+    MostRecentQuarter: String
+    ProfitMargin: Float
+}
+
+type Valuation {
+    EnterpriseValue: Int
+    EnterpriseValueRevenue: Float
+    EnterpriseValueEbitda: Float
+}
+
+type SharesStats {
+    SharesOutstanding: Int
+    SharesFloat: Int
+    PercentInsiders: Float
+    PercentInstitutions: Float
+    SharesShort: Float
+    SharesShortPriorMonth: Float
+    ShortRatio: Float
+    ShortPercentOutstanding: Float
+    ShortPercentFloat: Float
+}
+
+type SplitsDividends {
+    ForwardAnnualDividendRate: Float
+    ForwardAnnualDividendYield: Float
+    PayoutRatio: Float
+    DividendDate: String
+    ExDividendDate: String
+    LastSplitFactor: String
+    LastSplitDate: String
+    NumberDividendsByYear: [NumberDividendsByYearMapTuple]
+}
+
+type NumberDividendsByYear {
+    Year: Int
+    Count: Int
+}
+
+type AnalystRatings {
+    Rating: Float
+    TargetPrice: Float
+    StrongBuy: Int
+    Buy: Int
+    Hold: Int
+    Sell: Int
+    StrongSell: Int
+}
+
+type Holders {
+    Institutions: [InstitutionMapTuple]
+    Funds: [InstitutionMapTuple]
+}
+
+type Institution {
+    name: String
+    date: String
+    totalShares: Float
+    totalAssets: Float
+    currentShares: Int
+    change: Int
+    change_p: Float
+}
+
+type InsiderTransaction {
+    date: String
+    ownerCik: Float
+    ownerName: String
+    transactionDate: String
+    transactionCode: String
+    transactionAmount: Int
+    transactionPrice: Float
+    transactionAcquiredDisposed: String
+    postTransactionAmount: Int
+    secLink: String
+}
+
+type ActivityInvolvementMapTuple {
+    key: String
+    value: ActivityInvolvement
+}
+
+type ESGScores {
+    Disclaimer: String
+    RatingDate: String
+    TotalEsg: Float
+    TotalEsgPercentile: Float
+    EnvironmentScore: Float
+    EnvironmentScorePercentile: Int
+    SocialScore: Float
+    SocialScorePercentile: Int
+    GovernanceScore: Float
+    GovernanceScorePercentile: Int
+    ControversyLevel: Int
+    ActivitiesInvolvement: [ActivityInvolvement]
+}
+
+type ActivityInvolvement {
+    Activity: String
+    Involvement: String
+}
+
+type AnnualMapTuple {
+    key: String
+    value: Annual
+}
+
+type QuarterlyMapTuple {
+    key: String
+    value: Quarterly
+}
+
+type OutstandingShares {
+    annual: [AnnualMapTuple]
+    quarterly: [QuarterlyMapTuple]
+}
+
+type Annual {
+    date: String
+    dateFormatted: String
+    sharesMln: String
+    shares: Float
+}
+
+type Quarterly {
+    date: String
+    dateFormatted: String
+    sharesMln: String
+    shares: Float
+}
+
+type HistoryMapTuple {
+    key: String
+    value: History
+}
+
+type TrendMapTuple {
+    key: String
+    value: Trend
+}
+
+type AnnualEarningsMapTuple {
+    key: String
+    value: AnnualEarnings
+}
+
+type Earnings {
+    History: [HistoryMapTuple]
+    Trend: [TrendMapTuple]
+    Annual: [AnnualEarningsMapTuple]
+}
+
+type History {
+    reportDate: String
+    date: String
+    beforeAfterMarket: String
+    currency: String
+    epsActual: Float
+    epsEstimate: Float
+    epsDifference: Float
+    surprisePercent: Float
+}
+
+type Trend {
+    date: String
+    period: String
+    growth: String
+    earningsEstimateAvg: String
+    earningsEstimateLow: String
+    earningsEstimateHigh: String
+    earningsEstimateYearAgoEps: String
+    earningsEstimateNumberOfAnalysts: String
+    earningsEstimateGrowth: String
+    revenueEstimateAvg: String
+    revenueEstimateLow: String
+    revenueEstimateHigh: String
+    revenueEstimateYearAgoEps: Float
+    revenueEstimateNumberOfAnalysts: String
+    revenueEstimateGrowth: String
+    epsTrendCurrent: String
+    epsTrend7daysAgo: String
+    epsTrend30daysAgo: String
+    epsTrend60daysAgo: String
+    epsTrend90daysAgo: String
+    epsRevisionsUpLast7days: String
+    epsRevisionsUpLast30days: String
+    epsRevisionsDownLast7days: String
+    epsRevisionsDownLast30days: String
+}
+
+type AnnualEarnings {
+    date: String
+    epsActual: Float
+}
+
+type Financials {
+    Balance_Sheet: BalanceSheet
+    Cash_Flow: CashFlow
+    Income_Statement: IncomeStatement
+}
+
+type BalanceSheet {
+    currency_symbol: String
+    quarterly: [BalanceSheetItemMapTuple]
+    yearly: [BalanceSheetItemMapTuple]
+}
+
+type BalanceSheetItem {
+    date: String
+    filing_date: String
+    currency_symbol: String
+    totalAssets: String
+    intangibleAssets: Float
+    earningAssets: Float
+    otherCurrentAssets: String
+    totalLiab: String
+    totalStockholderEquity: String
+    deferredLongTermLiab: Float
+    otherCurrentLiab: String
+    commonStock: String
+    retainedEarnings: String
+    otherLiab: String
+    goodWill: Float
+    otherAssets: String
+    cash: String
+    totalCurrentLiabilities: String
+    netDebt: String
+    shortTermDebt: String
+    shortLongTermDebt: String
+    shortLongTermDebtTotal: String
+    otherStockholderEquity: String
+    propertyPlantEquipment: String
+    totalCurrentAssets: String
+    longTermInvestments: String
+    netTangibleAssets: String
+    shortTermInvestments: String
+    netReceivables: String
+    longTermDebt: String
+    inventory: String
+    accountsPayable: String
+    totalPermanentEquity: Float
+    noncontrollingInterestInConsolidatedEntity: Float
+    temporaryEquityRedeemableNoncontrollingInterests: Float
+    accumulatedOtherComprehensiveIncome: String
+    additionalPaidInCapital: Float
+    commonStockTotalEquity: String
+    preferredStockTotalEquity: Float
+    retainedEarningsTotalEquity: String
+    treasuryStock: Float
+    accumulatedAmortization: Float
+    nonCurrrentAssetsOther: String
+    deferredLongTermAssetCharges: Float
+    nonCurrentAssetsTotal: String
+    capitalLeaseObligations: Float
+    longTermDebtTotal: String
+    nonCurrentLiabilitiesOther: String
+    nonCurrentLiabilitiesTotal: String
+    negativeGoodwill: Float
+    warrants: Float
+    preferredStockRedeemable: Float
+    capitalSurpluse: Float
+    liabilitiesAndStockholdersEquity: String
+    cashAndShortTermInvestments: String
+    propertyPlantAndEquipmentGross: Float
+    propertyPlantAndEquipmentNet: String
+    accumulatedDepreciation: Float
+    netWorkingCapital: String
+    netInvestedCapital: String
+    commonStockSharesOutstanding: String
+}
+
+type CashFlow {
+    currency_symbol: String
+    quarterly: [CashFlowItemMapTuple]
+    yearly: [CashFlowItemMapTuple]
+}
+
+type CashFlowItem {
+    date: String
+    filing_date: String
+    currency_symbol: String
+    investments: String
+    changeToLiabilities: String
+    totalCashflowsFromInvestingActivities: String
+    netBorrowings: String
+    totalCashFromFinancingActivities: String
+    changeToOperatingActivities: String
+    netIncome: String
+    changeInCash: String
+    beginPeriodCashFlow: String
+    endPeriodCashFlow: String
+    totalCashFromOperatingActivities: String
+    depreciation: String
+    otherCashflowsFromInvestingActivities: String
+    dividendsPaid: String
+    changeToInventory: String
+    changeToAccountReceivables: String
+    salePurchaseOfStock: String
+    otherCashflowsFromFinancingActivities: String
+    changeToNetincome: String
+    capitalExpenditures: String
+    changeReceivables: String
+    cashFlowsOtherOperating: String
+    exchangeRateChanges: Float
+    cashAndCashEquivalentsChanges: String
+    changeInWorkingCapital: String
+    otherNonCashItems: String
+    freeCashFlow: String
+}
+
+
+type IncomeStatement {
+    currency_symbol: String
+    quarterly: [IncomeStatementItemMapTuple]
+    yearly: [IncomeStatementItemMapTuple]
+}
+
+
+type IncomeStatementItem {
+    date: String
+    filing_date: String
+    currency_symbol: String
+    researchDevelopment: String
+    effectOfAccountingCharges: Float
+    incomeBeforeTax: String
+    minorityInterest: Float
+    netIncome: String
+    sellingGeneralAdministrative: String
+    sellingAndMarketingExpenses: Float
+    grossProfit: String
+    reconciledDepreciation: String
+    ebit: String
+    ebitda: String
+    depreciationAndAmortization: String
+    nonOperatingIncomeNetOther: String
+    operatingIncome: String
+    otherOperatingExpenses: Float
+    interestExpense: Float
+    taxProvision: String
+    interestIncome: Float
+    netInterestIncome: Float
+    extraordinaryItems: Float
+    nonRecurring: Float
+    otherItems: Float
+    incomeTaxExpense: String
+    totalRevenue: String
+    totalOperatingExpenses: String
+    costOfRevenue: String
+    totalOtherIncomeExpenseNet: String
+    discontinuedOperations: Float
+    netIncomeFromContinuingOps: String
+    netIncomeApplicableToCommonShares: String
+    preferredStockAndOtherAdjustments: Float
+}
+
