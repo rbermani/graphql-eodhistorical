@@ -1,4 +1,41 @@
-package server_type
+package servertype
+
+import (
+	"time"
+)
+
+type SplitsRecord struct {
+	Ticker     string             `json:"Ticker",bson:"ticker"`
+	InsertDate time.Time          `json:"InsertDate",bson:"insertDate"`
+	Record     []SplitsRecordRoot `json:"Record",bson:"record"`
+}
+
+type SplitsRecordRoot struct {
+	Date  string `json:"date""`
+	Split string `json:"split"`
+}
+
+type FundamentalsRecord struct {
+	Ticker     string               `json:"Ticker",bson:"ticker"`
+	InsertDate time.Time            `json:"InsertDate",bson:"insertDate"`
+	Record     *EODFundamentalsRoot `json:"Record",bson:"record"`
+}
+
+type EODFundamentalsRoot struct {
+	General             General                       `json:"General"`
+	Highlights          Highlights                    `json:"Highlights"`
+	Valuation           Valuation                     `json:"Valuation"`
+	SharesStats         SharesStats                   `json:"SharesStats"`
+	Technicals          Technicals                    `json:"Technicals"`
+	SplitsDividends     SplitsDividends               `json:"SplitsDividends"`
+	AnalystRatings      AnalystRatings                `json:"AnalystRatings"`
+	Holders             Holders                       `json:"Holders"`
+	InsiderTransactions map[string]InsiderTransaction `json:"InsiderTransactions"`
+	ESGScores           ESGScores                     `json:"ESGScores"`
+	OutstandingShares   OutstandingShares             `json:"OutstandingShares"`
+	Earnings            Earnings                      `json:"Earnings"`
+	Financials          Financials                    `json:"Financials"`
+}
 
 type ActivityInvolvement struct {
 	Activity    string `json:"Activity"`
@@ -7,10 +44,10 @@ type ActivityInvolvement struct {
 
 type Technicals struct {
 	Beta                  float64 `json:"Beta"`
-	_52WeekHigh           string  `json:"52WeekHigh"`
-	_52WeekLow            string  `json:"52WeekLow"`
-	_50DayMA              string  `json:"50DayMA"`
-	_200DayMA             string  `json:"200DayMA"`
+	FiftyTwoWeekHigh      float64 `json:"52WeekHigh"`
+	FiftyTwoWeekLow       float64 `json:"52WeekLow"`
+	FiftyDayMA            float64 `json:"50DayMA"`
+	TwoHundredDayMA       float64 `json:"200DayMA"`
 	SharesShort           int     `json:"SharesShort"`
 	SharesShortPriorMonth int     `json:"SharesShortPriorMonth"`
 	ShortRatio            float64 `json:"ShortRatio"`
@@ -176,22 +213,6 @@ type Earnings struct {
 	Annual  map[string]AnnualEarnings `json:"Annual"`
 }
 
-type EquityFundamentals struct {
-	General             General                       `json:"General"`
-	Highlights          Highlights                    `json:"Highlights"`
-	Valuation           Valuation                     `json:"Valuation"`
-	SharesStats         SharesStats                   `json:"SharesStats"`
-	Technicals          Technicals                    `json:"Technicals"`
-	SplitsDividends     SplitsDividends               `json:"SplitsDividends"`
-	AnalystRatings      AnalystRatings                `json:"AnalystRatings"`
-	Holders             Holders                       `json:"Holders"`
-	InsiderTransactions map[string]InsiderTransaction `json:"InsiderTransactions"`
-	ESGScores           ESGScores                     `json:"ESGScores"`
-	OutstandingShares   OutstandingShares             `json:"OutstandingShares"`
-	Earnings            Earnings                      `json:"Earnings"`
-	Financials          Financials                    `json:"Financials"`
-}
-
 type Financials struct {
 	BalanceSheet    BalanceSheet    `json:"Balance_Sheet"`
 	CashFlow        CashFlow        `json:"Cash_Flow"`
@@ -224,20 +245,38 @@ type General struct {
 	Listings              map[string]Listing `json:"Listings"`
 	Officers              map[string]Officer `json:"Officers"`
 	Phone                 string             `json:"Phone"`
+	WebURL                string             `json:"WebURL"`
+	LogoURL               string             `json:"LogoURL"`
 	FullTimeEmployees     int                `json:"FullTimeEmployees"`
 	UpdatedAt             string             `json:"UpdatedAt"`
 }
 
 type Highlights struct {
-	MarketCapitalization    int     `json:"MarketCapitalization"`
-	MarketCapitalizationMln float64 `json:"MarketCapitalizationMln"`
-	WallStreetTargetPrice   float64 `json:"WallStreetTargetPrice"`
-	BookValue               float64 `json:"BookValue"`
-	DividendShare           float64 `json:"DividendShare"`
-	DividendYield           float64 `json:"DividendYield"`
-	EarningsShare           float64 `json:"EarningsShare"`
-	MostRecentQuarter       string  `json:"MostRecentQuarter"`
-	ProfitMargin            float64 `json:"ProfitMargin"`
+	MarketCapitalization       int     `json:"MarketCapitalization"`
+	MarketCapitalizationMln    float64 `json:"MarketCapitalizationMln"`
+	Ebitda                     int     `json:"EBITDA"`
+	PERatio                    float64 `json:"PERatio"`
+	PEGRatio                   float64 `json:"PEGRatio"`
+	WallStreetTargetPrice      float64 `json:"WallStreetTargetPrice"`
+	BookValue                  float64 `json:"BookValue"`
+	DividendShare              float64 `json:"DividendShare"`
+	DividendYield              float64 `json:"DividendYield"`
+	EarningsShare              float64 `json:"EarningsShare"`
+	EPSEstimateCurrentYear     float64 `json:"EPSEstimateCurrentYear"`
+	EPSEstimateNextYear        float64 `json:"EPSEstimateNextYear"`
+	EPSEstimateNextQuarter     int     `json:"EPSEstimateNextQuarter"`
+	EPSEstimateCurrentQuarter  float64 `json:"EPSEstimateCurrentQuarter"`
+	MostRecentQuarter          string  `json:"MostRecentQuarter"`
+	ProfitMargin               float64 `json:"ProfitMargin"`
+	OperatingMarginTtm         float64 `json:"OperatingMarginTTM"`
+	ReturnOnAssetsTtm          float64 `json:"ReturnOnAssetsTTM"`
+	ReturnOnEquityTtm          float64 `json:"ReturnOnEquityTTM"`
+	RevenueTtm                 int     `json:"RevenueTTM"`
+	RevenuePerShareTtm         float64 `json:"RevenuePerShareTTM"`
+	QuarterlyRevenueGrowthYoy  float64 `json:"QuarterlyRevenueGrowthYOY"`
+	GrossProfitTtm             int     `json:"GrossProfitTTM"`
+	DilutedEpsTtm              float64 `json:"DilutedEpsTTM"`
+	QuarterlyEarningsGrowthYoy float64 `json:"QuarterlyEarningsGrowthYOY"`
 }
 
 type History struct {
@@ -257,9 +296,9 @@ type Holders struct {
 }
 
 type IncomeStatement struct {
-	CurrencySymbol string                     `json:"currency_symbol"`
-	Quarterly      map[string]IncomeStatement `json:"quarterly"`
-	Yearly         map[string]IncomeStatement `json:"yearly"`
+	CurrencySymbol string                         `json:"currency_symbol"`
+	Quarterly      map[string]IncomeStatementItem `json:"quarterly"`
+	Yearly         map[string]IncomeStatementItem `json:"yearly"`
 }
 
 type IncomeStatementItem struct {
@@ -352,15 +391,15 @@ type Quarterly struct {
 }
 
 type SharesStats struct {
-	SharesOutstanding       int     `json:"SharesOutstanding"`
-	SharesFloat             int     `json:"SharesFloat"`
-	PercentInsiders         float64 `json:"PercentInsiders"`
-	PercentInstitutions     float64 `json:"PercentInstitutions"`
-	SharesShort             string  `json:"SharesShort"`
-	SharesShortPriorMonth   string  `json:"SharesShortPriorMonth"`
-	ShortRatio              string  `json:"ShortRatio"`
-	ShortPercentOutstanding string  `json:"ShortPercentOutstanding"`
-	ShortPercentFloat       string  `json:"ShortPercentFloat"`
+	SharesOutstanding       int64       `json:"SharesOutstanding"`
+	SharesFloat             int64       `json:"SharesFloat"`
+	PercentInsiders         float64     `json:"PercentInsiders"`
+	PercentInstitutions     float64     `json:"PercentInstitutions"`
+	SharesShort             interface{} `json:"SharesShort"`
+	SharesShortPriorMonth   interface{} `json:"SharesShortPriorMonth"`
+	ShortRatio              interface{} `json:"ShortRatio"`
+	ShortPercentOutstanding interface{} `json:"ShortPercentOutstanding"`
+	ShortPercentFloat       interface{} `json:"ShortPercentFloat"`
 }
 
 type SplitsDividends struct {
@@ -402,7 +441,11 @@ type Trend struct {
 }
 
 type Valuation struct {
-	EnterpriseValue        int     `json:"EnterpriseValue"`
+	TrailingPE             float64 `json:"TrailingPE"`
+	ForwardPE              float64 `json:"ForwardPE"`
+	PriceSalesTTM          float64 `json:"PriceSalesTTM"`
+	PriceBookMRQ           float64 `json:"PriceBookMRQ"`
+	EnterpriseValue        int64   `json:"EnterpriseValue"`
 	EnterpriseValueRevenue float64 `json:"EnterpriseValueRevenue"`
 	EnterpriseValueEbitda  float64 `json:"EnterpriseValueEbitda"`
 }

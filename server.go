@@ -14,28 +14,24 @@ import (
 
 const defaultPort = "8080"
 
-//func reqFundamentals(target interface{}) error {
-//	var http_client = &http.Client{Timeout: 10 * time.Second}
-//	r, err := http_client.Get(eod_fundamental_api + eod_api_key)
-//	if err != nil {
-//		return err
-//	}
-//	defer r.Body.Close()
-//
-//	return json.NewDecoder(r.Body).Decode(target)
-//}
-
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{}}))
+	tmpResolver, err := resolver.NewResolver()
+	if err != nil {
+		log.Printf("Unable to Create New Resolver and Initialize Db connection.")
+		return
+	}
+	defer tmpResolver.Close()
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: tmpResolver}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+
 }

@@ -207,6 +207,12 @@ type EquityFundamentals struct {
 	Financials          *Financials                 `json:"Financials"`
 }
 
+type EquitySplits struct {
+	Ticker     string          `json:"Ticker"`
+	InsertDate string          `json:"InsertDate"`
+	Record     []*SplitsRecord `json:"Record"`
+}
+
 type Financials struct {
 	BalanceSheet    *BalanceSheet    `json:"Balance_Sheet"`
 	CashFlow        *CashFlow        `json:"Cash_Flow"`
@@ -214,60 +220,76 @@ type Financials struct {
 }
 
 type General struct {
-	Code                  *string      `json:"Code"`
-	Type                  *string      `json:"Type"`
-	Name                  *string      `json:"Name"`
-	Exchange              *string      `json:"Exchange"`
-	CurrencyCode          *string      `json:"CurrencyCode"`
-	CurrencyName          *string      `json:"CurrencyName"`
-	CurrencySymbol        *string      `json:"CurrencySymbol"`
-	CountryName           *string      `json:"CountryName"`
-	EmployerIDNumber      *string      `json:"EmployerIdNumber"`
-	FiscalYearEnd         *string      `json:"FiscalYearEnd"`
-	InternationalDomestic *string      `json:"InternationalDomestic"`
-	Sector                *string      `json:"Sector"`
-	Industry              *string      `json:"Industry"`
-	GicSector             *string      `json:"GicSector"`
-	GicGroup              *string      `json:"GicGroup"`
-	GicIndustry           *string      `json:"GicIndustry"`
-	GicSubIndustry        *string      `json:"GicSubIndustry"`
-	HomeCategory          *string      `json:"HomeCategory"`
-	IsDelisted            *bool        `json:"IsDelisted"`
-	Description           *string      `json:"Description"`
-	Address               *string      `json:"Address"`
-	AddressData           *AddressData `json:"AddressData"`
-	Listings              *ListingMap  `json:"Listings"`
-	Officers              *OfficerMap  `json:"Officers"`
-	Phone                 *string      `json:"Phone"`
-	FullTimeEmployees     *int         `json:"FullTimeEmployees"`
-	UpdatedAt             *string      `json:"UpdatedAt"`
+	Code                  *string       `json:"Code"`
+	Type                  *string       `json:"Type"`
+	Name                  *string       `json:"Name"`
+	Exchange              *string       `json:"Exchange"`
+	CurrencyCode          *string       `json:"CurrencyCode"`
+	CurrencyName          *string       `json:"CurrencyName"`
+	CurrencySymbol        *string       `json:"CurrencySymbol"`
+	CountryName           *string       `json:"CountryName"`
+	EmployerIDNumber      *string       `json:"EmployerIdNumber"`
+	FiscalYearEnd         *string       `json:"FiscalYearEnd"`
+	InternationalDomestic *string       `json:"InternationalDomestic"`
+	Sector                *string       `json:"Sector"`
+	Industry              *string       `json:"Industry"`
+	GicSector             *string       `json:"GicSector"`
+	GicGroup              *string       `json:"GicGroup"`
+	GicIndustry           *string       `json:"GicIndustry"`
+	GicSubIndustry        *string       `json:"GicSubIndustry"`
+	HomeCategory          *string       `json:"HomeCategory"`
+	IsDelisted            *bool         `json:"IsDelisted"`
+	Description           *string       `json:"Description"`
+	Address               *string       `json:"Address"`
+	AddressData           *AddressData  `json:"AddressData"`
+	Listings              []*ListingMap `json:"Listings"`
+	Officers              []*OfficerMap `json:"Officers"`
+	Phone                 *string       `json:"Phone"`
+	FullTimeEmployees     *int          `json:"FullTimeEmployees"`
+	UpdatedAt             *string       `json:"UpdatedAt"`
 }
 
 type Highlights struct {
-	MarketCapitalization    *int     `json:"MarketCapitalization"`
-	MarketCapitalizationMln *float64 `json:"MarketCapitalizationMln"`
-	WallStreetTargetPrice   *float64 `json:"WallStreetTargetPrice"`
-	BookValue               *float64 `json:"BookValue"`
-	DividendShare           *float64 `json:"DividendShare"`
-	DividendYield           *float64 `json:"DividendYield"`
-	EarningsShare           *float64 `json:"EarningsShare"`
-	MostRecentQuarter       *string  `json:"MostRecentQuarter"`
-	ProfitMargin            *float64 `json:"ProfitMargin"`
+	MarketCapitalization       int     `json:"MarketCapitalization"`
+	MarketCapitalizationMln    float64 `json:"MarketCapitalizationMln"`
+	Ebitda                     int     `json:"EBITDA"`
+	PERatio                    float64 `json:"PERatio"`
+	PEGRatio                   float64 `json:"PEGRatio"`
+	WallStreetTargetPrice      float64 `json:"WallStreetTargetPrice"`
+	BookValue                  float64 `json:"BookValue"`
+	DividendShare              float64 `json:"DividendShare"`
+	DividendYield              float64 `json:"DividendYield"`
+	EarningsShare              float64 `json:"EarningsShare"`
+	EPSEstimateCurrentYear     float64 `json:"EPSEstimateCurrentYear"`
+	EPSEstimateNextYear        float64 `json:"EPSEstimateNextYear"`
+	EPSEstimateNextQuarter     int     `json:"EPSEstimateNextQuarter"`
+	EPSEstimateCurrentQuarter  float64 `json:"EPSEstimateCurrentQuarter"`
+	MostRecentQuarter          string  `json:"MostRecentQuarter"`
+	ProfitMargin               float64 `json:"ProfitMargin"`
+	OperatingMarginTtm         float64 `json:"OperatingMarginTTM"`
+	ReturnOnAssetsTtm          float64 `json:"ReturnOnAssetsTTM"`
+	ReturnOnEquityTtm          float64 `json:"ReturnOnEquityTTM"`
+	RevenueTtm                 int     `json:"RevenueTTM"`
+	RevenuePerShareTtm         float64 `json:"RevenuePerShareTTM"`
+	QuarterlyRevenueGrowthYoy  float64 `json:"QuarterlyRevenueGrowthYOY"`
+	GrossProfitTtm             int     `json:"GrossProfitTTM"`
+	DilutedEpsTtm              float64 `json:"DilutedEpsTTM"`
+	QuarterlyEarningsGrowthYoy float64 `json:"QuarterlyEarningsGrowthYOY"`
 }
 
 type History struct {
-	ReportDate        *string  `json:"reportDate"`
-	Date              *string  `json:"date"`
-	BeforeAfterMarket *string  `json:"beforeAfterMarket"`
-	Currency          *string  `json:"currency"`
-	EpsActual         *float64 `json:"epsActual"`
-	EpsEstimate       *float64 `json:"epsEstimate"`
-	EpsDifference     *float64 `json:"epsDifference"`
-	SurprisePercent   *float64 `json:"surprisePercent"`
+	ReportDate        string  `json:"reportDate"`
+	Date              string  `json:"date"`
+	BeforeAfterMarket string  `json:"beforeAfterMarket"`
+	Currency          string  `json:"currency"`
+	EpsActual         float64 `json:"epsActual"`
+	EpsEstimate       float64 `json:"epsEstimate"`
+	EpsDifference     float64 `json:"epsDifference"`
+	SurprisePercent   float64 `json:"surprisePercent"`
 }
 
 type HistoryMapTuple struct {
-	Key   *string  `json:"key"`
+	Key   string   `json:"key"`
 	Value *History `json:"value"`
 }
 
@@ -379,9 +401,9 @@ type NumberDividendsByYearMapTuple struct {
 }
 
 type Officer struct {
-	Name     *string `json:"Name"`
-	Title    *string `json:"Title"`
-	YearBorn *string `json:"YearBorn"`
+	Name     string `json:"Name"`
+	Title    string `json:"Title"`
+	YearBorn string `json:"YearBorn"`
 }
 
 type OfficerMap struct {
@@ -427,6 +449,11 @@ type SplitsDividends struct {
 	LastSplitFactor            *string                          `json:"LastSplitFactor"`
 	LastSplitDate              *string                          `json:"LastSplitDate"`
 	NumberDividendsByYear      []*NumberDividendsByYearMapTuple `json:"NumberDividendsByYear"`
+}
+
+type SplitsRecord struct {
+	Date  string `json:"Date"`
+	Split string `json:"Split"`
 }
 
 type Trend struct {

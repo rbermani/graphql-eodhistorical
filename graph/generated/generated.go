@@ -37,7 +37,6 @@ type Config struct {
 
 type ResolverRoot interface {
 	Query() QueryResolver
-	Technicals() TechnicalsResolver
 }
 
 type DirectiveRoot struct {
@@ -249,6 +248,12 @@ type ComplexityRoot struct {
 		Valuation           func(childComplexity int) int
 	}
 
+	EquitySplits struct {
+		InsertDate func(childComplexity int) int
+		Record     func(childComplexity int) int
+		Ticker     func(childComplexity int) int
+	}
+
 	Financials struct {
 		BalanceSheet    func(childComplexity int) int
 		CashFlow        func(childComplexity int) int
@@ -286,15 +291,31 @@ type ComplexityRoot struct {
 	}
 
 	Highlights struct {
-		BookValue               func(childComplexity int) int
-		DividendShare           func(childComplexity int) int
-		DividendYield           func(childComplexity int) int
-		EarningsShare           func(childComplexity int) int
-		MarketCapitalization    func(childComplexity int) int
-		MarketCapitalizationMln func(childComplexity int) int
-		MostRecentQuarter       func(childComplexity int) int
-		ProfitMargin            func(childComplexity int) int
-		WallStreetTargetPrice   func(childComplexity int) int
+		BookValue                  func(childComplexity int) int
+		DilutedEpsTtm              func(childComplexity int) int
+		DividendShare              func(childComplexity int) int
+		DividendYield              func(childComplexity int) int
+		EPSEstimateCurrentQuarter  func(childComplexity int) int
+		EPSEstimateCurrentYear     func(childComplexity int) int
+		EPSEstimateNextQuarter     func(childComplexity int) int
+		EPSEstimateNextYear        func(childComplexity int) int
+		EarningsShare              func(childComplexity int) int
+		Ebitda                     func(childComplexity int) int
+		GrossProfitTtm             func(childComplexity int) int
+		MarketCapitalization       func(childComplexity int) int
+		MarketCapitalizationMln    func(childComplexity int) int
+		MostRecentQuarter          func(childComplexity int) int
+		OperatingMarginTtm         func(childComplexity int) int
+		PEGRatio                   func(childComplexity int) int
+		PERatio                    func(childComplexity int) int
+		ProfitMargin               func(childComplexity int) int
+		QuarterlyEarningsGrowthYoy func(childComplexity int) int
+		QuarterlyRevenueGrowthYoy  func(childComplexity int) int
+		ReturnOnAssetsTtm          func(childComplexity int) int
+		ReturnOnEquityTtm          func(childComplexity int) int
+		RevenuePerShareTtm         func(childComplexity int) int
+		RevenueTtm                 func(childComplexity int) int
+		WallStreetTargetPrice      func(childComplexity int) int
 	}
 
 	History struct {
@@ -449,7 +470,12 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		GetFundamentals func(childComplexity int, ticker *string) int
+		GetCompanyEarningsHistory func(childComplexity int, ticker *string) int
+		GetCompanyHighlights      func(childComplexity int, ticker *string) int
+		GetCompanyOfficers        func(childComplexity int, ticker *string) int
+		GetCompanyTechnicals      func(childComplexity int, ticker *string) int
+		GetFundamentals           func(childComplexity int, ticker *string) int
+		GetSplits                 func(childComplexity int, ticker *string) int
 	}
 
 	SharesStats struct {
@@ -475,16 +501,21 @@ type ComplexityRoot struct {
 		PayoutRatio                func(childComplexity int) int
 	}
 
+	SplitsRecord struct {
+		Date  func(childComplexity int) int
+		Split func(childComplexity int) int
+	}
+
 	Technicals struct {
 		Beta                  func(childComplexity int) int
-		DayMa200              func(childComplexity int) int
-		DayMa50               func(childComplexity int) int
+		FiftyDayMA            func(childComplexity int) int
+		FiftyTwoWeekHigh      func(childComplexity int) int
+		FiftyTwoWeekLow       func(childComplexity int) int
 		SharesShort           func(childComplexity int) int
 		SharesShortPriorMonth func(childComplexity int) int
 		ShortPercent          func(childComplexity int) int
 		ShortRatio            func(childComplexity int) int
-		WeekHigh52            func(childComplexity int) int
-		WeekLow52             func(childComplexity int) int
+		TwoHundredDayMA       func(childComplexity int) int
 	}
 
 	Trend struct {
@@ -528,12 +559,11 @@ type ComplexityRoot struct {
 
 type QueryResolver interface {
 	GetFundamentals(ctx context.Context, ticker *string) (*model.EquityFundamentals, error)
-}
-type TechnicalsResolver interface {
-	WeekHigh52(ctx context.Context, obj *model.Technicals) (*float64, error)
-	WeekLow52(ctx context.Context, obj *model.Technicals) (*float64, error)
-	DayMa50(ctx context.Context, obj *model.Technicals) (*float64, error)
-	DayMa200(ctx context.Context, obj *model.Technicals) (*float64, error)
+	GetCompanyOfficers(ctx context.Context, ticker *string) ([]*model.OfficerMap, error)
+	GetSplits(ctx context.Context, ticker *string) (*model.EquitySplits, error)
+	GetCompanyTechnicals(ctx context.Context, ticker *string) (*model.Technicals, error)
+	GetCompanyHighlights(ctx context.Context, ticker *string) (*model.Highlights, error)
+	GetCompanyEarningsHistory(ctx context.Context, ticker *string) ([]*model.HistoryMapTuple, error)
 }
 
 type executableSchema struct {
@@ -1629,6 +1659,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.EquityFundamentals.Valuation(childComplexity), true
 
+	case "EquitySplits.InsertDate":
+		if e.complexity.EquitySplits.InsertDate == nil {
+			break
+		}
+
+		return e.complexity.EquitySplits.InsertDate(childComplexity), true
+
+	case "EquitySplits.Record":
+		if e.complexity.EquitySplits.Record == nil {
+			break
+		}
+
+		return e.complexity.EquitySplits.Record(childComplexity), true
+
+	case "EquitySplits.Ticker":
+		if e.complexity.EquitySplits.Ticker == nil {
+			break
+		}
+
+		return e.complexity.EquitySplits.Ticker(childComplexity), true
+
 	case "Financials.Balance_Sheet":
 		if e.complexity.Financials.BalanceSheet == nil {
 			break
@@ -1846,6 +1897,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Highlights.BookValue(childComplexity), true
 
+	case "Highlights.DilutedEpsTTM":
+		if e.complexity.Highlights.DilutedEpsTtm == nil {
+			break
+		}
+
+		return e.complexity.Highlights.DilutedEpsTtm(childComplexity), true
+
 	case "Highlights.DividendShare":
 		if e.complexity.Highlights.DividendShare == nil {
 			break
@@ -1860,12 +1918,54 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Highlights.DividendYield(childComplexity), true
 
+	case "Highlights.EPSEstimateCurrentQuarter":
+		if e.complexity.Highlights.EPSEstimateCurrentQuarter == nil {
+			break
+		}
+
+		return e.complexity.Highlights.EPSEstimateCurrentQuarter(childComplexity), true
+
+	case "Highlights.EPSEstimateCurrentYear":
+		if e.complexity.Highlights.EPSEstimateCurrentYear == nil {
+			break
+		}
+
+		return e.complexity.Highlights.EPSEstimateCurrentYear(childComplexity), true
+
+	case "Highlights.EPSEstimateNextQuarter":
+		if e.complexity.Highlights.EPSEstimateNextQuarter == nil {
+			break
+		}
+
+		return e.complexity.Highlights.EPSEstimateNextQuarter(childComplexity), true
+
+	case "Highlights.EPSEstimateNextYear":
+		if e.complexity.Highlights.EPSEstimateNextYear == nil {
+			break
+		}
+
+		return e.complexity.Highlights.EPSEstimateNextYear(childComplexity), true
+
 	case "Highlights.EarningsShare":
 		if e.complexity.Highlights.EarningsShare == nil {
 			break
 		}
 
 		return e.complexity.Highlights.EarningsShare(childComplexity), true
+
+	case "Highlights.EBITDA":
+		if e.complexity.Highlights.Ebitda == nil {
+			break
+		}
+
+		return e.complexity.Highlights.Ebitda(childComplexity), true
+
+	case "Highlights.GrossProfitTTM":
+		if e.complexity.Highlights.GrossProfitTtm == nil {
+			break
+		}
+
+		return e.complexity.Highlights.GrossProfitTtm(childComplexity), true
 
 	case "Highlights.MarketCapitalization":
 		if e.complexity.Highlights.MarketCapitalization == nil {
@@ -1888,12 +1988,75 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Highlights.MostRecentQuarter(childComplexity), true
 
+	case "Highlights.OperatingMarginTTM":
+		if e.complexity.Highlights.OperatingMarginTtm == nil {
+			break
+		}
+
+		return e.complexity.Highlights.OperatingMarginTtm(childComplexity), true
+
+	case "Highlights.PEGRatio":
+		if e.complexity.Highlights.PEGRatio == nil {
+			break
+		}
+
+		return e.complexity.Highlights.PEGRatio(childComplexity), true
+
+	case "Highlights.PERatio":
+		if e.complexity.Highlights.PERatio == nil {
+			break
+		}
+
+		return e.complexity.Highlights.PERatio(childComplexity), true
+
 	case "Highlights.ProfitMargin":
 		if e.complexity.Highlights.ProfitMargin == nil {
 			break
 		}
 
 		return e.complexity.Highlights.ProfitMargin(childComplexity), true
+
+	case "Highlights.QuarterlyEarningsGrowthYOY":
+		if e.complexity.Highlights.QuarterlyEarningsGrowthYoy == nil {
+			break
+		}
+
+		return e.complexity.Highlights.QuarterlyEarningsGrowthYoy(childComplexity), true
+
+	case "Highlights.QuarterlyRevenueGrowthYOY":
+		if e.complexity.Highlights.QuarterlyRevenueGrowthYoy == nil {
+			break
+		}
+
+		return e.complexity.Highlights.QuarterlyRevenueGrowthYoy(childComplexity), true
+
+	case "Highlights.ReturnOnAssetsTTM":
+		if e.complexity.Highlights.ReturnOnAssetsTtm == nil {
+			break
+		}
+
+		return e.complexity.Highlights.ReturnOnAssetsTtm(childComplexity), true
+
+	case "Highlights.ReturnOnEquityTTM":
+		if e.complexity.Highlights.ReturnOnEquityTtm == nil {
+			break
+		}
+
+		return e.complexity.Highlights.ReturnOnEquityTtm(childComplexity), true
+
+	case "Highlights.RevenuePerShareTTM":
+		if e.complexity.Highlights.RevenuePerShareTtm == nil {
+			break
+		}
+
+		return e.complexity.Highlights.RevenuePerShareTtm(childComplexity), true
+
+	case "Highlights.RevenueTTM":
+		if e.complexity.Highlights.RevenueTtm == nil {
+			break
+		}
+
+		return e.complexity.Highlights.RevenueTtm(childComplexity), true
 
 	case "Highlights.WallStreetTargetPrice":
 		if e.complexity.Highlights.WallStreetTargetPrice == nil {
@@ -2560,6 +2723,54 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.QuarterlyMapTuple.Value(childComplexity), true
 
+	case "Query.getCompanyEarningsHistory":
+		if e.complexity.Query.GetCompanyEarningsHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getCompanyEarningsHistory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetCompanyEarningsHistory(childComplexity, args["ticker"].(*string)), true
+
+	case "Query.getCompanyHighlights":
+		if e.complexity.Query.GetCompanyHighlights == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getCompanyHighlights_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetCompanyHighlights(childComplexity, args["ticker"].(*string)), true
+
+	case "Query.getCompanyOfficers":
+		if e.complexity.Query.GetCompanyOfficers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getCompanyOfficers_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetCompanyOfficers(childComplexity, args["ticker"].(*string)), true
+
+	case "Query.getCompanyTechnicals":
+		if e.complexity.Query.GetCompanyTechnicals == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getCompanyTechnicals_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetCompanyTechnicals(childComplexity, args["ticker"].(*string)), true
+
 	case "Query.getFundamentals":
 		if e.complexity.Query.GetFundamentals == nil {
 			break
@@ -2571,6 +2782,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetFundamentals(childComplexity, args["ticker"].(*string)), true
+
+	case "Query.getSplits":
+		if e.complexity.Query.GetSplits == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getSplits_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetSplits(childComplexity, args["ticker"].(*string)), true
 
 	case "SharesStats.PercentInsiders":
 		if e.complexity.SharesStats.PercentInsiders == nil {
@@ -2691,6 +2914,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SplitsDividends.PayoutRatio(childComplexity), true
 
+	case "SplitsRecord.Date":
+		if e.complexity.SplitsRecord.Date == nil {
+			break
+		}
+
+		return e.complexity.SplitsRecord.Date(childComplexity), true
+
+	case "SplitsRecord.Split":
+		if e.complexity.SplitsRecord.Split == nil {
+			break
+		}
+
+		return e.complexity.SplitsRecord.Split(childComplexity), true
+
 	case "Technicals.Beta":
 		if e.complexity.Technicals.Beta == nil {
 			break
@@ -2698,19 +2935,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Technicals.Beta(childComplexity), true
 
-	case "Technicals.DayMA200":
-		if e.complexity.Technicals.DayMa200 == nil {
+	case "Technicals.FiftyDayMA":
+		if e.complexity.Technicals.FiftyDayMA == nil {
 			break
 		}
 
-		return e.complexity.Technicals.DayMa200(childComplexity), true
+		return e.complexity.Technicals.FiftyDayMA(childComplexity), true
 
-	case "Technicals.DayMA50":
-		if e.complexity.Technicals.DayMa50 == nil {
+	case "Technicals.FiftyTwoWeekHigh":
+		if e.complexity.Technicals.FiftyTwoWeekHigh == nil {
 			break
 		}
 
-		return e.complexity.Technicals.DayMa50(childComplexity), true
+		return e.complexity.Technicals.FiftyTwoWeekHigh(childComplexity), true
+
+	case "Technicals.FiftyTwoWeekLow":
+		if e.complexity.Technicals.FiftyTwoWeekLow == nil {
+			break
+		}
+
+		return e.complexity.Technicals.FiftyTwoWeekLow(childComplexity), true
 
 	case "Technicals.SharesShort":
 		if e.complexity.Technicals.SharesShort == nil {
@@ -2740,19 +2984,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Technicals.ShortRatio(childComplexity), true
 
-	case "Technicals.WeekHigh52":
-		if e.complexity.Technicals.WeekHigh52 == nil {
+	case "Technicals.TwoHundredDayMA":
+		if e.complexity.Technicals.TwoHundredDayMA == nil {
 			break
 		}
 
-		return e.complexity.Technicals.WeekHigh52(childComplexity), true
-
-	case "Technicals.WeekLow52":
-		if e.complexity.Technicals.WeekLow52 == nil {
-			break
-		}
-
-		return e.complexity.Technicals.WeekLow52(childComplexity), true
+		return e.complexity.Technicals.TwoHundredDayMA(childComplexity), true
 
 	case "Trend.date":
 		if e.complexity.Trend.Date == nil {
@@ -3010,12 +3247,32 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	{Name: "schema.graphqls", Input: `
+type Query {
+    getFundamentals(ticker: String): EquityFundamentals!
+    getCompanyOfficers(ticker: String): [OfficerMap]
+	getSplits(ticker: String): EquitySplits!
+	getCompanyTechnicals(ticker: String): Technicals!
+	getCompanyHighlights(ticker: String): Highlights!
+	getCompanyEarningsHistory(ticker: String): [HistoryMapTuple]!
+}
+
+type EquitySplits {
+	Ticker: String!
+	InsertDate: String!
+	Record:	[SplitsRecord!]!
+}
+
+type SplitsRecord {
+	Date:	String!
+	Split:	String!
+}
+
 type Technicals {
 	Beta:                  Float 
-	WeekHigh52:           Float 
-	WeekLow52:            Float 
-	DayMA50:              Float
-	DayMA200:             Float
+	FiftyTwoWeekHigh:      Float 
+	FiftyTwoWeekLow:       Float 
+	FiftyDayMA:            Float
+	TwoHundredDayMA:       Float
 	SharesShort:           Int    
 	SharesShortPriorMonth: Int     
 	ShortRatio:            Float 
@@ -3036,10 +3293,6 @@ type EquityFundamentals {
 	OutstandingShares:   OutstandingShares            
 	Earnings:            Earnings                     
 	Financials:          Financials                   
-}
-
-type Query {
-    getFundamentals(ticker: String): EquityFundamentals!
 }
 
 type NumberDividendsByYearMapTuple {
@@ -3105,8 +3358,8 @@ type General {
     Description: String
     Address: String
     AddressData: AddressData
-    Listings: ListingMap
-    Officers: OfficerMap
+    Listings: [ListingMap]
+    Officers: [OfficerMap]
     Phone: String
     FullTimeEmployees: Int
     UpdatedAt: String
@@ -3126,21 +3379,37 @@ type Listing {
 }
 
 type Officer {
-    Name: String
-    Title: String
-    YearBorn: String
+    Name: String!
+    Title: String!
+    YearBorn: String!
 }
 
 type Highlights {
-    MarketCapitalization: Int
-    MarketCapitalizationMln: Float
-    WallStreetTargetPrice: Float
-    BookValue: Float
-    DividendShare: Float
-    DividendYield: Float
-    EarningsShare: Float
-    MostRecentQuarter: String
-    ProfitMargin: Float
+	MarketCapitalization:       Int!   
+	MarketCapitalizationMln:    Float! 
+	EBITDA  :                   Int!   
+	PERatio      :              Float! 
+	PEGRatio     :              Float! 
+	WallStreetTargetPrice :     Float! 
+	BookValue        :          Float! 
+	DividendShare    :          Float! 
+	DividendYield   :           Float! 
+	EarningsShare      :        Float! 
+	EPSEstimateCurrentYear :    Float! 
+	EPSEstimateNextYear    :    Float! 
+	EPSEstimateNextQuarter   :  Int!    
+	EPSEstimateCurrentQuarter:  Float! 
+	MostRecentQuarter:          String!
+	ProfitMargin   :            Float! 
+	OperatingMarginTTM  :       Float! 
+	ReturnOnAssetsTTM   :       Float! 
+	ReturnOnEquityTTM  :        Float! 
+	RevenueTTM  :               Int!   
+	RevenuePerShareTTM   :      Float! 
+	QuarterlyRevenueGrowthYOY:  Float! 
+	GrossProfitTTM   :          Int!   
+	DilutedEpsTTM    :          Float! 
+	QuarterlyEarningsGrowthYOY: Float! 
 }
 
 type Valuation {
@@ -3270,8 +3539,8 @@ type Quarterly {
 }
 
 type HistoryMapTuple {
-    key: String
-    value: History
+    key: String!
+    value: History!
 }
 
 type TrendMapTuple {
@@ -3291,14 +3560,14 @@ type Earnings {
 }
 
 type History {
-    reportDate: String
-    date: String
-    beforeAfterMarket: String
-    currency: String
-    epsActual: Float
-    epsEstimate: Float
-    epsDifference: Float
-    surprisePercent: Float
+    reportDate: String!
+    date: String!
+    beforeAfterMarket: String!
+    currency: String!
+    epsActual: Float!
+    epsEstimate: Float!
+    epsDifference: Float!
+    surprisePercent: Float!
 }
 
 type Trend {
@@ -3516,7 +3785,82 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_getCompanyEarningsHistory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["ticker"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticker"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticker"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getCompanyHighlights_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["ticker"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticker"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticker"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getCompanyOfficers_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["ticker"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticker"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticker"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getCompanyTechnicals_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["ticker"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticker"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticker"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_getFundamentals_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["ticker"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticker"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticker"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_getSplits_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *string
@@ -9743,6 +10087,12 @@ func (ec *executionContext) fieldContext_EquityFundamentals_Highlights(ctx conte
 				return ec.fieldContext_Highlights_MarketCapitalization(ctx, field)
 			case "MarketCapitalizationMln":
 				return ec.fieldContext_Highlights_MarketCapitalizationMln(ctx, field)
+			case "EBITDA":
+				return ec.fieldContext_Highlights_EBITDA(ctx, field)
+			case "PERatio":
+				return ec.fieldContext_Highlights_PERatio(ctx, field)
+			case "PEGRatio":
+				return ec.fieldContext_Highlights_PEGRatio(ctx, field)
 			case "WallStreetTargetPrice":
 				return ec.fieldContext_Highlights_WallStreetTargetPrice(ctx, field)
 			case "BookValue":
@@ -9753,10 +10103,36 @@ func (ec *executionContext) fieldContext_EquityFundamentals_Highlights(ctx conte
 				return ec.fieldContext_Highlights_DividendYield(ctx, field)
 			case "EarningsShare":
 				return ec.fieldContext_Highlights_EarningsShare(ctx, field)
+			case "EPSEstimateCurrentYear":
+				return ec.fieldContext_Highlights_EPSEstimateCurrentYear(ctx, field)
+			case "EPSEstimateNextYear":
+				return ec.fieldContext_Highlights_EPSEstimateNextYear(ctx, field)
+			case "EPSEstimateNextQuarter":
+				return ec.fieldContext_Highlights_EPSEstimateNextQuarter(ctx, field)
+			case "EPSEstimateCurrentQuarter":
+				return ec.fieldContext_Highlights_EPSEstimateCurrentQuarter(ctx, field)
 			case "MostRecentQuarter":
 				return ec.fieldContext_Highlights_MostRecentQuarter(ctx, field)
 			case "ProfitMargin":
 				return ec.fieldContext_Highlights_ProfitMargin(ctx, field)
+			case "OperatingMarginTTM":
+				return ec.fieldContext_Highlights_OperatingMarginTTM(ctx, field)
+			case "ReturnOnAssetsTTM":
+				return ec.fieldContext_Highlights_ReturnOnAssetsTTM(ctx, field)
+			case "ReturnOnEquityTTM":
+				return ec.fieldContext_Highlights_ReturnOnEquityTTM(ctx, field)
+			case "RevenueTTM":
+				return ec.fieldContext_Highlights_RevenueTTM(ctx, field)
+			case "RevenuePerShareTTM":
+				return ec.fieldContext_Highlights_RevenuePerShareTTM(ctx, field)
+			case "QuarterlyRevenueGrowthYOY":
+				return ec.fieldContext_Highlights_QuarterlyRevenueGrowthYOY(ctx, field)
+			case "GrossProfitTTM":
+				return ec.fieldContext_Highlights_GrossProfitTTM(ctx, field)
+			case "DilutedEpsTTM":
+				return ec.fieldContext_Highlights_DilutedEpsTTM(ctx, field)
+			case "QuarterlyEarningsGrowthYOY":
+				return ec.fieldContext_Highlights_QuarterlyEarningsGrowthYOY(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Highlights", field.Name)
 		},
@@ -9912,14 +10288,14 @@ func (ec *executionContext) fieldContext_EquityFundamentals_Technicals(ctx conte
 			switch field.Name {
 			case "Beta":
 				return ec.fieldContext_Technicals_Beta(ctx, field)
-			case "WeekHigh52":
-				return ec.fieldContext_Technicals_WeekHigh52(ctx, field)
-			case "WeekLow52":
-				return ec.fieldContext_Technicals_WeekLow52(ctx, field)
-			case "DayMA50":
-				return ec.fieldContext_Technicals_DayMA50(ctx, field)
-			case "DayMA200":
-				return ec.fieldContext_Technicals_DayMA200(ctx, field)
+			case "FiftyTwoWeekHigh":
+				return ec.fieldContext_Technicals_FiftyTwoWeekHigh(ctx, field)
+			case "FiftyTwoWeekLow":
+				return ec.fieldContext_Technicals_FiftyTwoWeekLow(ctx, field)
+			case "FiftyDayMA":
+				return ec.fieldContext_Technicals_FiftyDayMA(ctx, field)
+			case "TwoHundredDayMA":
+				return ec.fieldContext_Technicals_TwoHundredDayMA(ctx, field)
 			case "SharesShort":
 				return ec.fieldContext_Technicals_SharesShort(ctx, field)
 			case "SharesShortPriorMonth":
@@ -10352,6 +10728,144 @@ func (ec *executionContext) fieldContext_EquityFundamentals_Financials(ctx conte
 				return ec.fieldContext_Financials_Income_Statement(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Financials", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EquitySplits_Ticker(ctx context.Context, field graphql.CollectedField, obj *model.EquitySplits) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_EquitySplits_Ticker(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ticker, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_EquitySplits_Ticker(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EquitySplits",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EquitySplits_InsertDate(ctx context.Context, field graphql.CollectedField, obj *model.EquitySplits) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_EquitySplits_InsertDate(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.InsertDate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_EquitySplits_InsertDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EquitySplits",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EquitySplits_Record(ctx context.Context, field graphql.CollectedField, obj *model.EquitySplits) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_EquitySplits_Record(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Record, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.SplitsRecord)
+	fc.Result = res
+	return ec.marshalNSplitsRecord2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐSplitsRecordᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_EquitySplits_Record(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EquitySplits",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "Date":
+				return ec.fieldContext_SplitsRecord_Date(ctx, field)
+			case "Split":
+				return ec.fieldContext_SplitsRecord_Split(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SplitsRecord", field.Name)
 		},
 	}
 	return fc, nil
@@ -11439,9 +11953,9 @@ func (ec *executionContext) _General_Listings(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.ListingMap)
+	res := resTmp.([]*model.ListingMap)
 	fc.Result = res
-	return ec.marshalOListingMap2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐListingMap(ctx, field.Selections, res)
+	return ec.marshalOListingMap2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐListingMap(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_General_Listings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11486,9 +12000,9 @@ func (ec *executionContext) _General_Officers(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.OfficerMap)
+	res := resTmp.([]*model.OfficerMap)
 	fc.Result = res
-	return ec.marshalOOfficerMap2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐOfficerMap(ctx, field.Selections, res)
+	return ec.marshalOOfficerMap2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐOfficerMap(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_General_Officers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11654,11 +12168,14 @@ func (ec *executionContext) _Highlights_MarketCapitalization(ctx context.Context
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_MarketCapitalization(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11695,14 +12212,149 @@ func (ec *executionContext) _Highlights_MarketCapitalizationMln(ctx context.Cont
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_MarketCapitalizationMln(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_EBITDA(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_EBITDA(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ebitda, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_EBITDA(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_PERatio(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_PERatio(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PERatio, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_PERatio(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_PEGRatio(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_PEGRatio(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PEGRatio, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_PEGRatio(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Highlights",
 		Field:      field,
@@ -11736,11 +12388,14 @@ func (ec *executionContext) _Highlights_WallStreetTargetPrice(ctx context.Contex
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_WallStreetTargetPrice(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11777,11 +12432,14 @@ func (ec *executionContext) _Highlights_BookValue(ctx context.Context, field gra
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_BookValue(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11818,11 +12476,14 @@ func (ec *executionContext) _Highlights_DividendShare(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_DividendShare(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11859,11 +12520,14 @@ func (ec *executionContext) _Highlights_DividendYield(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_DividendYield(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11900,14 +12564,193 @@ func (ec *executionContext) _Highlights_EarningsShare(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_EarningsShare(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_EPSEstimateCurrentYear(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_EPSEstimateCurrentYear(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EPSEstimateCurrentYear, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_EPSEstimateCurrentYear(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_EPSEstimateNextYear(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_EPSEstimateNextYear(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EPSEstimateNextYear, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_EPSEstimateNextYear(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_EPSEstimateNextQuarter(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_EPSEstimateNextQuarter(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EPSEstimateNextQuarter, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_EPSEstimateNextQuarter(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_EPSEstimateCurrentQuarter(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_EPSEstimateCurrentQuarter(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EPSEstimateCurrentQuarter, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_EPSEstimateCurrentQuarter(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Highlights",
 		Field:      field,
@@ -11941,11 +12784,14 @@ func (ec *executionContext) _Highlights_MostRecentQuarter(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_MostRecentQuarter(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -11982,14 +12828,413 @@ func (ec *executionContext) _Highlights_ProfitMargin(ctx context.Context, field 
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Highlights_ProfitMargin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_OperatingMarginTTM(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_OperatingMarginTTM(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OperatingMarginTtm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_OperatingMarginTTM(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_ReturnOnAssetsTTM(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_ReturnOnAssetsTTM(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReturnOnAssetsTtm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_ReturnOnAssetsTTM(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_ReturnOnEquityTTM(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_ReturnOnEquityTTM(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ReturnOnEquityTtm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_ReturnOnEquityTTM(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_RevenueTTM(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_RevenueTTM(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RevenueTtm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_RevenueTTM(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_RevenuePerShareTTM(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_RevenuePerShareTTM(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RevenuePerShareTtm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_RevenuePerShareTTM(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_QuarterlyRevenueGrowthYOY(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_QuarterlyRevenueGrowthYOY(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.QuarterlyRevenueGrowthYoy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_QuarterlyRevenueGrowthYOY(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_GrossProfitTTM(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_GrossProfitTTM(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GrossProfitTtm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_GrossProfitTTM(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_DilutedEpsTTM(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_DilutedEpsTTM(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DilutedEpsTtm, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_DilutedEpsTTM(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Highlights",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Highlights_QuarterlyEarningsGrowthYOY(ctx context.Context, field graphql.CollectedField, obj *model.Highlights) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Highlights_QuarterlyEarningsGrowthYOY(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.QuarterlyEarningsGrowthYoy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Highlights_QuarterlyEarningsGrowthYOY(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Highlights",
 		Field:      field,
@@ -12023,11 +13268,14 @@ func (ec *executionContext) _History_reportDate(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_reportDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12064,11 +13312,14 @@ func (ec *executionContext) _History_date(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_date(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12105,11 +13356,14 @@ func (ec *executionContext) _History_beforeAfterMarket(ctx context.Context, fiel
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_beforeAfterMarket(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12146,11 +13400,14 @@ func (ec *executionContext) _History_currency(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_currency(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12187,11 +13444,14 @@ func (ec *executionContext) _History_epsActual(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_epsActual(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12228,11 +13488,14 @@ func (ec *executionContext) _History_epsEstimate(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_epsEstimate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12269,11 +13532,14 @@ func (ec *executionContext) _History_epsDifference(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_epsDifference(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12310,11 +13576,14 @@ func (ec *executionContext) _History_surprisePercent(ctx context.Context, field 
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_History_surprisePercent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12351,11 +13620,14 @@ func (ec *executionContext) _HistoryMapTuple_key(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_HistoryMapTuple_key(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -12392,11 +13664,14 @@ func (ec *executionContext) _HistoryMapTuple_value(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.History)
 	fc.Result = res
-	return ec.marshalOHistory2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistory(ctx, field.Selections, res)
+	return ec.marshalNHistory2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_HistoryMapTuple_value(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15508,11 +16783,14 @@ func (ec *executionContext) _Officer_Name(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Officer_Name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15549,11 +16827,14 @@ func (ec *executionContext) _Officer_Title(ctx context.Context, field graphql.Co
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Officer_Title(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -15590,11 +16871,14 @@ func (ec *executionContext) _Officer_YearBorn(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Officer_YearBorn(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -16127,6 +17411,370 @@ func (ec *executionContext) fieldContext_Query_getFundamentals(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_getFundamentals_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getCompanyOfficers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getCompanyOfficers(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetCompanyOfficers(rctx, fc.Args["ticker"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.OfficerMap)
+	fc.Result = res
+	return ec.marshalOOfficerMap2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐOfficerMap(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getCompanyOfficers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "item_number":
+				return ec.fieldContext_OfficerMap_item_number(ctx, field)
+			case "value":
+				return ec.fieldContext_OfficerMap_value(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type OfficerMap", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getCompanyOfficers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getSplits(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getSplits(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetSplits(rctx, fc.Args["ticker"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.EquitySplits)
+	fc.Result = res
+	return ec.marshalNEquitySplits2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐEquitySplits(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getSplits(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "Ticker":
+				return ec.fieldContext_EquitySplits_Ticker(ctx, field)
+			case "InsertDate":
+				return ec.fieldContext_EquitySplits_InsertDate(ctx, field)
+			case "Record":
+				return ec.fieldContext_EquitySplits_Record(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EquitySplits", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getSplits_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getCompanyTechnicals(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getCompanyTechnicals(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetCompanyTechnicals(rctx, fc.Args["ticker"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Technicals)
+	fc.Result = res
+	return ec.marshalNTechnicals2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐTechnicals(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getCompanyTechnicals(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "Beta":
+				return ec.fieldContext_Technicals_Beta(ctx, field)
+			case "FiftyTwoWeekHigh":
+				return ec.fieldContext_Technicals_FiftyTwoWeekHigh(ctx, field)
+			case "FiftyTwoWeekLow":
+				return ec.fieldContext_Technicals_FiftyTwoWeekLow(ctx, field)
+			case "FiftyDayMA":
+				return ec.fieldContext_Technicals_FiftyDayMA(ctx, field)
+			case "TwoHundredDayMA":
+				return ec.fieldContext_Technicals_TwoHundredDayMA(ctx, field)
+			case "SharesShort":
+				return ec.fieldContext_Technicals_SharesShort(ctx, field)
+			case "SharesShortPriorMonth":
+				return ec.fieldContext_Technicals_SharesShortPriorMonth(ctx, field)
+			case "ShortRatio":
+				return ec.fieldContext_Technicals_ShortRatio(ctx, field)
+			case "ShortPercent":
+				return ec.fieldContext_Technicals_ShortPercent(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Technicals", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getCompanyTechnicals_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getCompanyHighlights(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getCompanyHighlights(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetCompanyHighlights(rctx, fc.Args["ticker"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Highlights)
+	fc.Result = res
+	return ec.marshalNHighlights2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHighlights(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getCompanyHighlights(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "MarketCapitalization":
+				return ec.fieldContext_Highlights_MarketCapitalization(ctx, field)
+			case "MarketCapitalizationMln":
+				return ec.fieldContext_Highlights_MarketCapitalizationMln(ctx, field)
+			case "EBITDA":
+				return ec.fieldContext_Highlights_EBITDA(ctx, field)
+			case "PERatio":
+				return ec.fieldContext_Highlights_PERatio(ctx, field)
+			case "PEGRatio":
+				return ec.fieldContext_Highlights_PEGRatio(ctx, field)
+			case "WallStreetTargetPrice":
+				return ec.fieldContext_Highlights_WallStreetTargetPrice(ctx, field)
+			case "BookValue":
+				return ec.fieldContext_Highlights_BookValue(ctx, field)
+			case "DividendShare":
+				return ec.fieldContext_Highlights_DividendShare(ctx, field)
+			case "DividendYield":
+				return ec.fieldContext_Highlights_DividendYield(ctx, field)
+			case "EarningsShare":
+				return ec.fieldContext_Highlights_EarningsShare(ctx, field)
+			case "EPSEstimateCurrentYear":
+				return ec.fieldContext_Highlights_EPSEstimateCurrentYear(ctx, field)
+			case "EPSEstimateNextYear":
+				return ec.fieldContext_Highlights_EPSEstimateNextYear(ctx, field)
+			case "EPSEstimateNextQuarter":
+				return ec.fieldContext_Highlights_EPSEstimateNextQuarter(ctx, field)
+			case "EPSEstimateCurrentQuarter":
+				return ec.fieldContext_Highlights_EPSEstimateCurrentQuarter(ctx, field)
+			case "MostRecentQuarter":
+				return ec.fieldContext_Highlights_MostRecentQuarter(ctx, field)
+			case "ProfitMargin":
+				return ec.fieldContext_Highlights_ProfitMargin(ctx, field)
+			case "OperatingMarginTTM":
+				return ec.fieldContext_Highlights_OperatingMarginTTM(ctx, field)
+			case "ReturnOnAssetsTTM":
+				return ec.fieldContext_Highlights_ReturnOnAssetsTTM(ctx, field)
+			case "ReturnOnEquityTTM":
+				return ec.fieldContext_Highlights_ReturnOnEquityTTM(ctx, field)
+			case "RevenueTTM":
+				return ec.fieldContext_Highlights_RevenueTTM(ctx, field)
+			case "RevenuePerShareTTM":
+				return ec.fieldContext_Highlights_RevenuePerShareTTM(ctx, field)
+			case "QuarterlyRevenueGrowthYOY":
+				return ec.fieldContext_Highlights_QuarterlyRevenueGrowthYOY(ctx, field)
+			case "GrossProfitTTM":
+				return ec.fieldContext_Highlights_GrossProfitTTM(ctx, field)
+			case "DilutedEpsTTM":
+				return ec.fieldContext_Highlights_DilutedEpsTTM(ctx, field)
+			case "QuarterlyEarningsGrowthYOY":
+				return ec.fieldContext_Highlights_QuarterlyEarningsGrowthYOY(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Highlights", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getCompanyHighlights_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getCompanyEarningsHistory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getCompanyEarningsHistory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetCompanyEarningsHistory(rctx, fc.Args["ticker"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.HistoryMapTuple)
+	fc.Result = res
+	return ec.marshalNHistoryMapTuple2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistoryMapTuple(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getCompanyEarningsHistory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "key":
+				return ec.fieldContext_HistoryMapTuple_key(ctx, field)
+			case "value":
+				return ec.fieldContext_HistoryMapTuple_value(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HistoryMapTuple", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getCompanyEarningsHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -16965,6 +18613,94 @@ func (ec *executionContext) fieldContext_SplitsDividends_NumberDividendsByYear(c
 	return fc, nil
 }
 
+func (ec *executionContext) _SplitsRecord_Date(ctx context.Context, field graphql.CollectedField, obj *model.SplitsRecord) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SplitsRecord_Date(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Date, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SplitsRecord_Date(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SplitsRecord",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SplitsRecord_Split(ctx context.Context, field graphql.CollectedField, obj *model.SplitsRecord) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SplitsRecord_Split(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Split, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SplitsRecord_Split(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SplitsRecord",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Technicals_Beta(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Technicals_Beta(ctx, field)
 	if err != nil {
@@ -16988,9 +18724,9 @@ func (ec *executionContext) _Technicals_Beta(ctx context.Context, field graphql.
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Technicals_Beta(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -17006,8 +18742,8 @@ func (ec *executionContext) fieldContext_Technicals_Beta(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Technicals_WeekHigh52(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Technicals_WeekHigh52(ctx, field)
+func (ec *executionContext) _Technicals_FiftyTwoWeekHigh(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Technicals_FiftyTwoWeekHigh(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17020,7 +18756,7 @@ func (ec *executionContext) _Technicals_WeekHigh52(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Technicals().WeekHigh52(rctx, obj)
+		return obj.FiftyTwoWeekHigh, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17029,17 +18765,17 @@ func (ec *executionContext) _Technicals_WeekHigh52(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Technicals_WeekHigh52(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Technicals_FiftyTwoWeekHigh(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Technicals",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
 		},
@@ -17047,8 +18783,8 @@ func (ec *executionContext) fieldContext_Technicals_WeekHigh52(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Technicals_WeekLow52(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Technicals_WeekLow52(ctx, field)
+func (ec *executionContext) _Technicals_FiftyTwoWeekLow(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Technicals_FiftyTwoWeekLow(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17061,7 +18797,7 @@ func (ec *executionContext) _Technicals_WeekLow52(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Technicals().WeekLow52(rctx, obj)
+		return obj.FiftyTwoWeekLow, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17070,17 +18806,17 @@ func (ec *executionContext) _Technicals_WeekLow52(ctx context.Context, field gra
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Technicals_WeekLow52(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Technicals_FiftyTwoWeekLow(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Technicals",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
 		},
@@ -17088,8 +18824,8 @@ func (ec *executionContext) fieldContext_Technicals_WeekLow52(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Technicals_DayMA50(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Technicals_DayMA50(ctx, field)
+func (ec *executionContext) _Technicals_FiftyDayMA(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Technicals_FiftyDayMA(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17102,7 +18838,7 @@ func (ec *executionContext) _Technicals_DayMA50(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Technicals().DayMa50(rctx, obj)
+		return obj.FiftyDayMA, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17111,17 +18847,17 @@ func (ec *executionContext) _Technicals_DayMA50(ctx context.Context, field graph
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Technicals_DayMA50(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Technicals_FiftyDayMA(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Technicals",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
 		},
@@ -17129,8 +18865,8 @@ func (ec *executionContext) fieldContext_Technicals_DayMA50(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Technicals_DayMA200(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Technicals_DayMA200(ctx, field)
+func (ec *executionContext) _Technicals_TwoHundredDayMA(ctx context.Context, field graphql.CollectedField, obj *model.Technicals) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Technicals_TwoHundredDayMA(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -17143,7 +18879,7 @@ func (ec *executionContext) _Technicals_DayMA200(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Technicals().DayMa200(rctx, obj)
+		return obj.TwoHundredDayMA, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -17152,17 +18888,17 @@ func (ec *executionContext) _Technicals_DayMA200(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Technicals_DayMA200(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Technicals_TwoHundredDayMA(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Technicals",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
 		},
@@ -17193,9 +18929,9 @@ func (ec *executionContext) _Technicals_SharesShort(ctx context.Context, field g
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalOInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Technicals_SharesShort(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -17234,9 +18970,9 @@ func (ec *executionContext) _Technicals_SharesShortPriorMonth(ctx context.Contex
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalOInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Technicals_SharesShortPriorMonth(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -17275,9 +19011,9 @@ func (ec *executionContext) _Technicals_ShortRatio(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Technicals_ShortRatio(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -17316,9 +19052,9 @@ func (ec *executionContext) _Technicals_ShortPercent(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Technicals_ShortPercent(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -21327,6 +23063,48 @@ func (ec *executionContext) _EquityFundamentals(ctx context.Context, sel ast.Sel
 	return out
 }
 
+var equitySplitsImplementors = []string{"EquitySplits"}
+
+func (ec *executionContext) _EquitySplits(ctx context.Context, sel ast.SelectionSet, obj *model.EquitySplits) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, equitySplitsImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EquitySplits")
+		case "Ticker":
+
+			out.Values[i] = ec._EquitySplits_Ticker(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "InsertDate":
+
+			out.Values[i] = ec._EquitySplits_InsertDate(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Record":
+
+			out.Values[i] = ec._EquitySplits_Record(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var financialsImplementors = []string{"Financials"}
 
 func (ec *executionContext) _Financials(ctx context.Context, sel ast.SelectionSet, obj *model.Financials) graphql.Marshaler {
@@ -21503,38 +23281,177 @@ func (ec *executionContext) _Highlights(ctx context.Context, sel ast.SelectionSe
 
 			out.Values[i] = ec._Highlights_MarketCapitalization(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "MarketCapitalizationMln":
 
 			out.Values[i] = ec._Highlights_MarketCapitalizationMln(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "EBITDA":
+
+			out.Values[i] = ec._Highlights_EBITDA(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "PERatio":
+
+			out.Values[i] = ec._Highlights_PERatio(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "PEGRatio":
+
+			out.Values[i] = ec._Highlights_PEGRatio(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "WallStreetTargetPrice":
 
 			out.Values[i] = ec._Highlights_WallStreetTargetPrice(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "BookValue":
 
 			out.Values[i] = ec._Highlights_BookValue(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DividendShare":
 
 			out.Values[i] = ec._Highlights_DividendShare(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "DividendYield":
 
 			out.Values[i] = ec._Highlights_DividendYield(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "EarningsShare":
 
 			out.Values[i] = ec._Highlights_EarningsShare(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "EPSEstimateCurrentYear":
+
+			out.Values[i] = ec._Highlights_EPSEstimateCurrentYear(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "EPSEstimateNextYear":
+
+			out.Values[i] = ec._Highlights_EPSEstimateNextYear(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "EPSEstimateNextQuarter":
+
+			out.Values[i] = ec._Highlights_EPSEstimateNextQuarter(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "EPSEstimateCurrentQuarter":
+
+			out.Values[i] = ec._Highlights_EPSEstimateCurrentQuarter(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "MostRecentQuarter":
 
 			out.Values[i] = ec._Highlights_MostRecentQuarter(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "ProfitMargin":
 
 			out.Values[i] = ec._Highlights_ProfitMargin(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "OperatingMarginTTM":
+
+			out.Values[i] = ec._Highlights_OperatingMarginTTM(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "ReturnOnAssetsTTM":
+
+			out.Values[i] = ec._Highlights_ReturnOnAssetsTTM(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "ReturnOnEquityTTM":
+
+			out.Values[i] = ec._Highlights_ReturnOnEquityTTM(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "RevenueTTM":
+
+			out.Values[i] = ec._Highlights_RevenueTTM(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "RevenuePerShareTTM":
+
+			out.Values[i] = ec._Highlights_RevenuePerShareTTM(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "QuarterlyRevenueGrowthYOY":
+
+			out.Values[i] = ec._Highlights_QuarterlyRevenueGrowthYOY(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "GrossProfitTTM":
+
+			out.Values[i] = ec._Highlights_GrossProfitTTM(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "DilutedEpsTTM":
+
+			out.Values[i] = ec._Highlights_DilutedEpsTTM(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "QuarterlyEarningsGrowthYOY":
+
+			out.Values[i] = ec._Highlights_QuarterlyEarningsGrowthYOY(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -21560,34 +23477,58 @@ func (ec *executionContext) _History(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Values[i] = ec._History_reportDate(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "date":
 
 			out.Values[i] = ec._History_date(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "beforeAfterMarket":
 
 			out.Values[i] = ec._History_beforeAfterMarket(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "currency":
 
 			out.Values[i] = ec._History_currency(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "epsActual":
 
 			out.Values[i] = ec._History_epsActual(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "epsEstimate":
 
 			out.Values[i] = ec._History_epsEstimate(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "epsDifference":
 
 			out.Values[i] = ec._History_epsDifference(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "surprisePercent":
 
 			out.Values[i] = ec._History_surprisePercent(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -21613,10 +23554,16 @@ func (ec *executionContext) _HistoryMapTuple(ctx context.Context, sel ast.Select
 
 			out.Values[i] = ec._HistoryMapTuple_key(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "value":
 
 			out.Values[i] = ec._HistoryMapTuple_value(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -22178,14 +24125,23 @@ func (ec *executionContext) _Officer(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Values[i] = ec._Officer_Name(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "Title":
 
 			out.Values[i] = ec._Officer_Title(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "YearBorn":
 
 			out.Values[i] = ec._Officer_YearBorn(ctx, field, obj)
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -22363,6 +24319,118 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "getCompanyOfficers":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getCompanyOfficers(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getSplits":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getSplits(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getCompanyTechnicals":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getCompanyTechnicals(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getCompanyHighlights":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getCompanyHighlights(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "getCompanyEarningsHistory":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getCompanyEarningsHistory(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "__type":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -22496,6 +24564,41 @@ func (ec *executionContext) _SplitsDividends(ctx context.Context, sel ast.Select
 	return out
 }
 
+var splitsRecordImplementors = []string{"SplitsRecord"}
+
+func (ec *executionContext) _SplitsRecord(ctx context.Context, sel ast.SelectionSet, obj *model.SplitsRecord) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, splitsRecordImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SplitsRecord")
+		case "Date":
+
+			out.Values[i] = ec._SplitsRecord_Date(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "Split":
+
+			out.Values[i] = ec._SplitsRecord_Split(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var technicalsImplementors = []string{"Technicals"}
 
 func (ec *executionContext) _Technicals(ctx context.Context, sel ast.SelectionSet, obj *model.Technicals) graphql.Marshaler {
@@ -22510,74 +24613,22 @@ func (ec *executionContext) _Technicals(ctx context.Context, sel ast.SelectionSe
 
 			out.Values[i] = ec._Technicals_Beta(ctx, field, obj)
 
-		case "WeekHigh52":
-			field := field
+		case "FiftyTwoWeekHigh":
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Technicals_WeekHigh52(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Technicals_FiftyTwoWeekHigh(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
+		case "FiftyTwoWeekLow":
 
-			})
-		case "WeekLow52":
-			field := field
+			out.Values[i] = ec._Technicals_FiftyTwoWeekLow(ctx, field, obj)
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Technicals_WeekLow52(ctx, field, obj)
-				return res
-			}
+		case "FiftyDayMA":
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
+			out.Values[i] = ec._Technicals_FiftyDayMA(ctx, field, obj)
 
-			})
-		case "DayMA50":
-			field := field
+		case "TwoHundredDayMA":
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Technicals_DayMA50(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Technicals_TwoHundredDayMA(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
-		case "DayMA200":
-			field := field
-
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Technicals_DayMA200(ctx, field, obj)
-				return res
-			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "SharesShort":
 
 			out.Values[i] = ec._Technicals_SharesShort(ctx, field, obj)
@@ -23131,6 +25182,166 @@ func (ec *executionContext) marshalNEquityFundamentals2ᚖgqlgenᚑcapeᚋgraph�
 	return ec._EquityFundamentals(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNEquitySplits2gqlgenᚑcapeᚋgraphᚋmodelᚐEquitySplits(ctx context.Context, sel ast.SelectionSet, v model.EquitySplits) graphql.Marshaler {
+	return ec._EquitySplits(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEquitySplits2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐEquitySplits(ctx context.Context, sel ast.SelectionSet, v *model.EquitySplits) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EquitySplits(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloatContext(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) marshalNHighlights2gqlgenᚑcapeᚋgraphᚋmodelᚐHighlights(ctx context.Context, sel ast.SelectionSet, v model.Highlights) graphql.Marshaler {
+	return ec._Highlights(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNHighlights2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHighlights(ctx context.Context, sel ast.SelectionSet, v *model.Highlights) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Highlights(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNHistory2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistory(ctx context.Context, sel ast.SelectionSet, v *model.History) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._History(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNHistoryMapTuple2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistoryMapTuple(ctx context.Context, sel ast.SelectionSet, v []*model.HistoryMapTuple) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOHistoryMapTuple2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistoryMapTuple(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNSplitsRecord2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐSplitsRecordᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SplitsRecord) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSplitsRecord2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐSplitsRecord(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSplitsRecord2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐSplitsRecord(ctx context.Context, sel ast.SelectionSet, v *model.SplitsRecord) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SplitsRecord(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -23144,6 +25355,20 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTechnicals2gqlgenᚑcapeᚋgraphᚋmodelᚐTechnicals(ctx context.Context, sel ast.SelectionSet, v model.Technicals) graphql.Marshaler {
+	return ec._Technicals(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTechnicals2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐTechnicals(ctx context.Context, sel ast.SelectionSet, v *model.Technicals) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Technicals(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -23742,6 +25967,16 @@ func (ec *executionContext) marshalOFinancials2ᚖgqlgenᚑcapeᚋgraphᚋmodel�
 	return ec._Financials(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloatContext(v)
+	return graphql.WrapContextMarshaler(ctx, res)
+}
+
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
 	if v == nil {
 		return nil, nil
@@ -23770,13 +26005,6 @@ func (ec *executionContext) marshalOHighlights2ᚖgqlgenᚑcapeᚋgraphᚋmodel�
 		return graphql.Null
 	}
 	return ec._Highlights(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOHistory2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistory(ctx context.Context, sel ast.SelectionSet, v *model.History) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._History(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOHistoryMapTuple2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐHistoryMapTuple(ctx context.Context, sel ast.SelectionSet, v []*model.HistoryMapTuple) graphql.Marshaler {
@@ -23965,6 +26193,16 @@ func (ec *executionContext) marshalOInstitutionMapTuple2ᚖgqlgenᚑcapeᚋgraph
 	return ec._InstitutionMapTuple(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -23986,6 +26224,47 @@ func (ec *executionContext) marshalOListing2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐL
 		return graphql.Null
 	}
 	return ec._Listing(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOListingMap2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐListingMap(ctx context.Context, sel ast.SelectionSet, v []*model.ListingMap) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOListingMap2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐListingMap(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
 }
 
 func (ec *executionContext) marshalOListingMap2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐListingMap(ctx context.Context, sel ast.SelectionSet, v *model.ListingMap) graphql.Marshaler {
@@ -24055,6 +26334,47 @@ func (ec *executionContext) marshalOOfficer2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐO
 		return graphql.Null
 	}
 	return ec._Officer(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOOfficerMap2ᚕᚖgqlgenᚑcapeᚋgraphᚋmodelᚐOfficerMap(ctx context.Context, sel ast.SelectionSet, v []*model.OfficerMap) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOOfficerMap2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐOfficerMap(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
 }
 
 func (ec *executionContext) marshalOOfficerMap2ᚖgqlgenᚑcapeᚋgraphᚋmodelᚐOfficerMap(ctx context.Context, sel ast.SelectionSet, v *model.OfficerMap) graphql.Marshaler {

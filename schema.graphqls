@@ -1,34 +1,50 @@
 
+type Query {
+    getFundamentals(ticker: String): EquityFundamentals!
+    getCompanyOfficers(ticker: String): [OfficerMap]
+    getSplits(ticker: String): EquitySplits!
+    getCompanyTechnicals(ticker: String): Technicals!
+    getCompanyHighlights(ticker: String): Highlights!
+    getCompanyEarningsHistory(ticker: String): [HistoryMapTuple]!
+}
+
+type EquitySplits {
+    Ticker: String!
+    InsertDate: String!
+    Record: [SplitsRecord!]!
+}
+
+type SplitsRecord {
+    Date:   String!
+    Split:  String!
+}
+
 type Technicals {
-	Beta:                  Float 
-	WeekHigh52:           Float 
-	WeekLow52:            Float 
-	DayMA50:              Float
-	DayMA200:             Float
-	SharesShort:           Int    
-	SharesShortPriorMonth: Int     
-	ShortRatio:            Float 
-	ShortPercent:          Float 
+    Beta:                  Float 
+    FiftyTwoWeekHigh:      Float 
+    FiftyTwoWeekLow:       Float 
+    FiftyDayMA:            Float
+    TwoHundredDayMA:       Float
+    SharesShort:           Int    
+    SharesShortPriorMonth: Int     
+    ShortRatio:            Float 
+    ShortPercent:          Float 
 }
 
 type EquityFundamentals {
-	General:             General                      
-	Highlights:          Highlights                   
-	Valuation:           Valuation                    
-	SharesStats:         SharesStats                  
-	Technicals:          Technicals                   
-	SplitsDividends:     SplitsDividends              
-	AnalystRatings:      AnalystRatings               
-	Holders:             Holders                      
-	InsiderTransactions: InsiderTransactionMapTuple 
-	ESGScores:           ESGScores                    
-	OutstandingShares:   OutstandingShares            
-	Earnings:            Earnings                     
-	Financials:          Financials                   
-}
-
-type Query {
-    getFundamentals(ticker: String): EquityFundamentals!
+    General:             General                      
+    Highlights:          Highlights                   
+    Valuation:           Valuation                    
+    SharesStats:         SharesStats                  
+    Technicals:          Technicals                   
+    SplitsDividends:     SplitsDividends              
+    AnalystRatings:      AnalystRatings               
+    Holders:             Holders                      
+    InsiderTransactions: InsiderTransactionMapTuple 
+    ESGScores:           ESGScores                    
+    OutstandingShares:   OutstandingShares            
+    Earnings:            Earnings                     
+    Financials:          Financials                   
 }
 
 type NumberDividendsByYearMapTuple {
@@ -94,8 +110,8 @@ type General {
     Description: String
     Address: String
     AddressData: AddressData
-    Listings: ListingMap
-    Officers: OfficerMap
+    Listings: [ListingMap]
+    Officers: [OfficerMap]
     Phone: String
     FullTimeEmployees: Int
     UpdatedAt: String
@@ -115,21 +131,37 @@ type Listing {
 }
 
 type Officer {
-    Name: String
-    Title: String
-    YearBorn: String
+    Name: String!
+    Title: String!
+    YearBorn: String!
 }
 
 type Highlights {
-    MarketCapitalization: Int
-    MarketCapitalizationMln: Float
-    WallStreetTargetPrice: Float
-    BookValue: Float
-    DividendShare: Float
-    DividendYield: Float
-    EarningsShare: Float
-    MostRecentQuarter: String
-    ProfitMargin: Float
+    MarketCapitalization:       Int!   
+    MarketCapitalizationMln:    Float! 
+    EBITDA:                     Int!   
+    PERatio:                    Float! 
+    PEGRatio:                   Float! 
+    WallStreetTargetPrice:      Float! 
+    BookValue:                  Float! 
+    DividendShare:              Float! 
+    DividendYield:              Float! 
+    EarningsShare:              Float! 
+    EPSEstimateCurrentYear:    Float! 
+    EPSEstimateNextYear:    Float! 
+    EPSEstimateNextQuarter:  Int!    
+    EPSEstimateCurrentQuarter:  Float! 
+    MostRecentQuarter:          String!
+    ProfitMargin:            Float! 
+    OperatingMarginTTM:       Float! 
+    ReturnOnAssetsTTM:       Float! 
+    ReturnOnEquityTTM:        Float! 
+    RevenueTTM:               Int!   
+    RevenuePerShareTTM:      Float! 
+    QuarterlyRevenueGrowthYOY:  Float! 
+    GrossProfitTTM:          Int!   
+    DilutedEpsTTM:          Float! 
+    QuarterlyEarningsGrowthYOY: Float! 
 }
 
 type Valuation {
@@ -259,8 +291,8 @@ type Quarterly {
 }
 
 type HistoryMapTuple {
-    key: String
-    value: History
+    key: String!
+    value: History!
 }
 
 type TrendMapTuple {
@@ -280,14 +312,14 @@ type Earnings {
 }
 
 type History {
-    reportDate: String
-    date: String
-    beforeAfterMarket: String
-    currency: String
-    epsActual: Float
-    epsEstimate: Float
-    epsDifference: Float
-    surprisePercent: Float
+    reportDate: String!
+    date: String!
+    beforeAfterMarket: String!
+    currency: String!
+    epsActual: Float!
+    epsEstimate: Float!
+    epsDifference: Float!
+    surprisePercent: Float!
 }
 
 type Trend {
